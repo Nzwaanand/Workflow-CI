@@ -57,7 +57,7 @@ jobs:
         DOCKER_USER: ${{ secrets.DOCKER_HUB_USERNAME }}
       run: |
         DOCKER_USER_CLEAN=$(printf "%s" "$DOCKER_USER")
-        IMAGE_NAME="${DOCKER_USER_CLEAN}/Prediksi-Stunting:latest"
+        IMAGE_NAME="${DOCKER_USER_CLEAN}/prediksi_stunting:latest"
     
         echo "Tagging image as $IMAGE_NAME"
         docker tag prediksi_stunting "$IMAGE_NAME"
