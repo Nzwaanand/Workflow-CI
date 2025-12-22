@@ -11,9 +11,6 @@ import mlflow.sklearn
 mlflow.set_tracking_uri("file:./mlruns")
 mlflow.set_experiment("Prediksi_Balita_Stunting_Bsc")
 
-# AUTLOG 
-mlflow.sklearn.autolog()
-
 # PATH DATASET 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -61,3 +58,4 @@ def run_model():
 
 if __name__ == "__main__":
     run_model()
+
