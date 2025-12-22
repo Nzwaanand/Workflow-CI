@@ -41,7 +41,7 @@ jobs:
 
     - name: Build Docker image
       run: |
-        mlflow models build-docker -m $MODEL_PATH -n stunting-model
+        mlflow models build-docker -m $MODEL_PATH -i stunting-model
 
     - name: Push Docker image
       run: |
