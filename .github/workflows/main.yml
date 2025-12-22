@@ -33,6 +33,10 @@ jobs:
       id: get_model_path
       run: |
         MODEL_PATH=$(find mlruns/0 -type d -path "*/artifacts/random_forest_model" | sort -r | head -n 1)
+        if [ -z "$MODEL_PATH" ]; then
+          echo "❌ Model path tidak ditemukan!"
+          exit 1
+        fi
         echo "Latest model path: $MODEL_PATH"
         echo "MODEL_PATH=$MODEL_PATH" >> $GITHUB_ENV
 
@@ -40,8 +44,7 @@ jobs:
       run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
 
     - name: Build Docker image
-      run: |
-        mlflow models build-docker -m $MODEL_PATH -i stunting-model
+      run: mlflow models build-docker -m $MODEL_PATH -n stunting-model
 
     - name: Push Docker image
       run: |
