@@ -27,26 +27,28 @@ jobs:
       run: rm -rf mlruns/
 
     - name: Run training script
-      run: python MLProject/modelling.py
+      working-directory: MLProject
+      run: python modelling.py
 
     - name: Get latest MLflow model path
       id: get_model_path
       run: |
-        MODEL_PATH=$(find mlruns/0 -type d -path "*/artifacts/random_forest_model" | sort -r | head -n 1)
+        MODEL_PATH=$(find MLProject/mlruns -type d -name "random_forest_model" | sort -r | head -n 1)
         if [ -z "$MODEL_PATH" ]; then
-          echo "❌ Model path tidak ditemukan!"
+          echo "Model path tidak ditemukan!"
           exit 1
         fi
-        echo "Latest model path: $MODEL_PATH"
         echo "MODEL_PATH=$MODEL_PATH" >> $GITHUB_ENV
+        echo "Latest model path: $MODEL_PATH"
 
     - name: Log in to Docker Hub
       run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
 
     - name: Build Docker image
-      run: mlflow models build-docker -m $MODEL_PATH -n stunting-model
-
-    - name: Push Docker image
       run: |
-        docker tag stunting-model:latest ${{ secrets.DOCKER_HUB_USERNAME }}/stunting-model:latest
+        mlflow models build-docker -m $MODEL_PATH
+
+    - name: Push Docker image to Docker Hub
+      run: |
+        docker tag mlflow-model:latest ${{ secrets.DOCKER_HUB_USERNAME }}/stunting-model:latest
         docker push ${{ secrets.DOCKER_HUB_USERNAME }}/stunting-model:latest
