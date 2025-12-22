@@ -27,8 +27,7 @@ jobs:
       run: rm -rf mlruns/
 
     - name: Run training script
-      run: |
-        python modelling.py
+      run: python MLProject/modelling.py
 
     - name: Get latest MLflow model path
       id: get_model_path
