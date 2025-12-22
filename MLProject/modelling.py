@@ -19,13 +19,15 @@ import tempfile
 # =========================
 # CONFIG
 # =========================
-mlflow.set_experiment("Prediksi_Balita_Stunting_Adv")
+EXPERIMENT_NAME = "Prediksi_Balita_Stunting_Adv"
+mlflow.set_experiment(EXPERIMENT_NAME)
 mlflow.sklearn.autolog(log_models=False)
 
 DATA_PATH = "stunting_balita_preprocessing.csv"
 
 if not os.path.exists(DATA_PATH):
     raise FileNotFoundError(f"Dataset tidak ditemukan di: {DATA_PATH}")
+
 
 # =========================
 # TRAINING FUNCTION
@@ -64,9 +66,11 @@ def run_advance():
         verbose=0
     )
 
-    # Start MLflow run
-    with mlflow.start_run(run_name="RandomForest_Stunting"):
-
+    # =========================
+    # START MLflow RUN
+    # =========================
+    with mlflow.start_run(run_name="RandomForest_Stunting") as run:
+        # Fit model
         grid_search.fit(X_train_scaled, y_train)
         best_rf_model = grid_search.best_estimator_
 
@@ -81,12 +85,11 @@ def run_advance():
             "f1_score": f1_score(y_test, y_pred, average="weighted")
         }
 
-        # Log params
+        # Log params & metrics
         mlflow.log_params(grid_search.best_params_)
-        # Log metrics
         mlflow.log_metrics(metrics)
 
-        # Log artifacts in temp folder
+        # Log artifacts
         with tempfile.TemporaryDirectory() as tmpdir:
             # Confusion Matrix
             cm = confusion_matrix(y_test, y_pred)
@@ -121,4 +124,3 @@ def run_advance():
 
 if __name__ == "__main__":
     run_advance()
-
