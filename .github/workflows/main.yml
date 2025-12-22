@@ -3,7 +3,7 @@ name: MLflow CI - Prediksi Balita Stunting
 on:
   push:
     branches:
-      - main         
+      - main
 
 jobs:
   train-log-and-dockerize:
@@ -29,6 +29,17 @@ jobs:
     - name: Run training script
       working-directory: MLProject
       run: python modelling.py
+
+    - name: Commit and push MLflow artifacts
+      working-directory: MLProject
+      run: |
+        git config user.name 'github-actions'
+        git config user.email 'github-actions@github.com'
+        git add mlruns
+        git commit -m "Update MLflow model artifact" || echo "No changes to commit"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Get latest MLflow model path
       working-directory: MLProject
