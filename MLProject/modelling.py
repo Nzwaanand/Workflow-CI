@@ -19,8 +19,8 @@ import tempfile
 # =========================
 # CONFIG
 # =========================
-mlflow.set_experiment("Prediksi_Balita_Stunting_Advance")
-mlflow.sklearn.autolog(log_models=False)  # manual logging untuk kontrol penuh
+mlflow.set_experiment("Prediksi_Balita_Stunting_Adv")
+mlflow.sklearn.autolog(log_models=False)
 
 DATA_PATH = "stunting_balita_preprocessing.csv"
 
@@ -121,3 +121,4 @@ def run_advance():
 
 if __name__ == "__main__":
     run_advance()
+
