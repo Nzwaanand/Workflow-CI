@@ -37,7 +37,7 @@ jobs:
         git config user.email 'github-actions@github.com'
         git add mlruns
         git commit -m "Update MLflow model artifact" || echo "No changes to commit"
-        git push
+        git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} HEAD:main
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
