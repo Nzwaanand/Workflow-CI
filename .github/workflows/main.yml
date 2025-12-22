@@ -50,7 +50,7 @@ jobs:
     
         mlflow models build-docker \
           --model-uri "$MODEL_PATH" \
-          --name Prediksi-Stunting
+          --name prediksi_stunting
 
     - name: Tag & Push Docker Image
       env:
@@ -60,7 +60,7 @@ jobs:
         IMAGE_NAME="${DOCKER_USER_CLEAN}/Prediksi-Stunting:latest"
     
         echo "Tagging image as $IMAGE_NAME"
-        docker tag prediksi-stunting "$IMAGE_NAME"
+        docker tag prediksi_stunting "$IMAGE_NAME"
         docker push "$IMAGE_NAME"
 
     - name: Upload MLflow Artifacts
