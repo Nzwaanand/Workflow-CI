@@ -18,7 +18,7 @@ def main():
     # =========================
     # LOAD DATA
     # =========================
-    DATA_PATH = "stunting_balita_preprocessing.csv"
+    DATA_PATH = "MLProject/stunting_balita_preprocessing.csv"
     if not os.path.exists(DATA_PATH):
         raise FileNotFoundError(f"Dataset tidak ditemukan di: {DATA_PATH}")
 
@@ -103,3 +103,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
