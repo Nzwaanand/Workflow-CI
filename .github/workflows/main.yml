@@ -2,9 +2,8 @@ name: MLflow CI - Prediksi Balita Stunting
 
 on:
   push:
-    paths:
-      - 'Workflow-CI/**'
-  workflow_dispatch:
+    branches:
+      - main         
 
 jobs:
   train-log-and-dockerize:
