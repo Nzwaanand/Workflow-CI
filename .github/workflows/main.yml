@@ -6,74 +6,63 @@ on:
   workflow_dispatch:
 
 jobs:
-  train-and-deploy:
+  train:
     runs-on: ubuntu-latest
-    
-    steps:
-    # 1. Checkout repo
-    - name: Checkout repository
-      uses: actions/checkout@v4
 
-    # 2. Setup Python
+    steps:
+    - uses: actions/checkout@v4
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: "3.12.7"
+        python-version: "3.10"
 
-    # 3. Install dependencies
-    - name: Install Dependencies
+    - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install -r MLProject/requirements.txt
-        pip install mlflow scikit-learn pandas
+        pip install mlflow pandas scikit-learn
 
-    # 4. Run training script (modelling.py)
-    - name: Run training script
+    - name: Run MLflow Project
       working-directory: MLProject
-      run: python modelling.py
-
-    # 5. Upload MLflow artifacts (opsional, untuk backup)
-    - name: Upload MLflow artifacts
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: model-artifact-mlruns
-        path: MLProject/mlruns/
-
-    # 6. Get latest MLflow run_id
-    - name: Get latest MLflow run_id
-      id: get_run_id
       run: |
-        RUN_ID=$(cat MLProject/run_id.txt)
-        echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
-        echo "Found Run ID: $RUN_ID"
+        mlflow run . --env-manager=local
 
-    # 7. Login to Docker Hub
-    - name: Login to Docker Hub
-      if: success()
+    - name: Login Docker Hub
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # 8. Build Docker image using MLflow
     - name: Build Docker Image with MLflow
       working-directory: MLProject
       env:
-        MLFLOW_TRACKING_URI: file:./MLProject/mlruns
+        MLFLOW_TRACKING_URI: file:./mlruns
       run: |
-        echo "Building Docker image for Run ID: ${{ env.RUN_ID }}"
+        echo "Isi mlruns:"
+        find mlruns -maxdepth 4
+    
+        MODEL_PATH=$(find mlruns -type d -path "*/artifacts/model" | head -n 1)
+    
+        echo "Model path ditemukan:"
+        echo "$MODEL_PATH"
+    
         mlflow models build-docker \
-          --model-uri "runs:/${{ env.RUN_ID }}/model" \
-          --name "Prediksi-Stunting-local" \
-          --enable-mlserver
+          --model-uri "$MODEL_PATH" \
+          --name Prediksi-Stunting
 
-    # 9. Tag Docker image
-    - name: Tag Docker Image
+    - name: Tag & Push Docker Image
+      env:
+        DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
       run: |
-        docker tag Prediksi-Stunting-local ${{ secrets.DOCKER_HUB_USERNAME }}/Prediksi-Stunting:latest
+        DOCKER_USER_CLEAN=$(printf "%s" "$DOCKER_USER")
+        IMAGE_NAME="${DOCKER_USER_CLEAN}/Prediksi-Stunting:latest"
+    
+        echo "Tagging image as $IMAGE_NAME"
+        docker tag Prediksi-Stunting "$IMAGE_NAME"
+        docker push "$IMAGE_NAME"
 
-    # 10. Push Docker image
-    - name: Push Docker Image
-      run: |
-        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/Prediksi-Stunting:latest
+    - name: Upload MLflow Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mlruns
+        path: MLProject/mlruns
