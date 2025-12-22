@@ -1,9 +1,10 @@
-name: MLflow CI - Prediksi Balita Stunting
+name: MLflow CI
 
 on:
   push:
-    branches:
-      - main         
+    paths:
+      - 'MLProject/**'
+  workflow_dispatch:
 
 jobs:
   train-log-and-dockerize:
@@ -21,33 +22,39 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install mlflow pandas scikit-learn matplotlib seaborn dagshub
+        pip install mlflow
 
-    - name: Cleanup previous mlruns
-      run: rm -rf MLProject/mlruns/
+    - name: Run MLflow Project
+      run: |
+        mlflow run MLProject --env-manager=local
 
-    - name: Run training script
-      working-directory: MLProject
-      run: python modelling.py
+    - name: Commit and push model artifact to GitHub
+      run: |
+        git config user.name 'github-actions'
+        git config user.email 'github-actions@github.com'
+        git add mlruns/*
+        git commit -m 'Update model artifact from MLflow tracking'
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PASSWORD }}
 
-    - name: Get latest MLflow model path
+    - name: Get latest MLflow model artifact path
       id: get_model_path
       run: |
-        MODEL_PATH=$(find MLProject/mlruns -type d -path "*/artifacts/random_forest_model" | sort -r | head -n 1)
-        if [ -z "$MODEL_PATH" ]; then
-          echo "Model path tidak ditemukan!"
-          exit 1
-        fi
+        MODEL_PATH=$(find mlruns -type d -path "*/artifacts/random_forest_model" | sort -r | head -n 1)
         echo "Latest model path: $MODEL_PATH"
         echo "MODEL_PATH=$MODEL_PATH" >> $GITHUB_ENV
 
     - name: Log in to Docker Hub
       run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
 
-    - name: Build Docker image
-      run: |
-        mlflow models build-docker -m $MODEL_PATH -n stunting-model
+    - name: Build Docker image from latest model artifact
+      run: mlflow models build-docker -m $MODEL_PATH -n msml-model
 
+    - name: Push Docker image to Docker Hub
+      run: |
+        docker tag msml-model:latest ${{ secrets.DOCKER_HUB_USERNAME }}/msml-model:latest
+        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/msml-model:latest
     - name: Push Docker image to Docker Hub
       run: |
         docker tag stunting-model:latest ${{ secrets.DOCKER_HUB_USERNAME }}/stunting-model:latest
