@@ -10,7 +10,9 @@ import mlflow.sklearn
 # ===============================
 # Konfigurasi MLflow
 # ===============================
-mlflow.set_tracking_uri("file:mlruns")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MLRUNS_PATH = os.path.join(BASE_DIR, "mlruns")
+mlflow.set_tracking_uri(f"file:{MLRUNS_PATH}")
 mlflow.set_experiment("Prediksi_Balita_Stunting_Bsc")
 
 mlflow.sklearn.autolog()
@@ -18,7 +20,6 @@ mlflow.sklearn.autolog()
 # ===============================
 # Path Dataset
 # ===============================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "stunting_balita_preprocessing.csv")
 
 # ===============================
@@ -51,32 +52,33 @@ def run_model():
         class_weight="balanced"
     )
 
-    with mlflow.start_run():
-        print("Training model...")
-        model.fit(X_train_scaled, y_train)
+    # Langsung fit model dan log metrics/model
+    print("Training model...")
+    model.fit(X_train_scaled, y_train)
 
-        y_pred = model.predict(X_test_scaled)
-        accuracy = accuracy_score(y_test, y_pred)
+    y_pred = model.predict(X_test_scaled)
+    accuracy = accuracy_score(y_test, y_pred)
+    print("Accuracy:", accuracy)
 
-        mlflow.log_metric("accuracy", accuracy)
+    mlflow.log_metric("accuracy", accuracy)
 
-        # Simpan scaler & model
-        mlflow.sklearn.log_model(
-            sk_model=model,
-            artifact_path="model",
-            input_example=X_train.iloc[:5]
-        )
+    # Simpan model & scaler
+    mlflow.sklearn.log_model(
+        sk_model=model,
+        artifact_path="model",
+        input_example=X_train.iloc[:5]
+    )
 
-        mlflow.sklearn.log_model(
-            sk_model=scaler,
-            artifact_path="scaler"
-        )
+    mlflow.sklearn.log_model(
+        sk_model=scaler,
+        artifact_path="scaler"
+    )
 
-        print("Training selesai")
-        print("Accuracy:", accuracy)
+    print("Training selesai dan model berhasil disimpan di MLflow.")
 
 # ===============================
 # Main
 # ===============================
 if __name__ == "__main__":
+    os.makedirs(MLRUNS_PATH, exist_ok=True)  # pastikan folder mlruns ada
     run_model()
