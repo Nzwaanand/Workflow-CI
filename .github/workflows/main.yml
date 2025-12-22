@@ -22,10 +22,12 @@ jobs:
         pip install --upgrade pip
         pip install mlflow pandas scikit-learn
 
-    - name: Run MLflow Project
+    - name: Create mlruns folder
+      run: mkdir -p MLProject/mlruns
+
+    - name: Run Training Script
       working-directory: MLProject
-      run: |
-        mlflow run . --env-manager=local
+      run: python modelling.py
 
     - name: Login Docker Hub
       uses: docker/login-action@v3
