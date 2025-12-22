@@ -3,7 +3,7 @@ name: MLflow CI - Prediksi Balita Stunting
 on:
   push:
     paths:
-      - 'MLProject/**'
+      - 'Workflow-CI/**'
   workflow_dispatch:
 
 jobs:
