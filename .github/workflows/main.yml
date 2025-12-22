@@ -3,8 +3,7 @@ name: MLflow CI
 on:
   push:
     paths:
-      - 'MLProject/**'
-  workflow_dispatch:
+      - Main
 
 jobs:
   train-log-and-dockerize:
