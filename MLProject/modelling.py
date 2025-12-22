@@ -4,21 +4,22 @@ import mlflow
 import mlflow.sklearn
 from mlflow.models.signature import infer_signature
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix, f1_score
+from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
 
 def main():
     # =========================
-    # CONFIG MLflow
+    # MLflow config
     # =========================
+    mlflow.set_tracking_uri("mlruns")  # simpan di root repo
     mlflow.set_experiment("Prediksi_Balita_Stunting_Adv")
     mlflow.sklearn.autolog(log_models=False)
 
     # =========================
-    # LOAD DATA
+    # Load data
     # =========================
-    DATA_PATH = "MLProject/stunting_balita_preprocessing.csv"
+    DATA_PATH = "stunting_balita_preprocessing.csv"
     if not os.path.exists(DATA_PATH):
         raise FileNotFoundError(f"Dataset tidak ditemukan di: {DATA_PATH}")
 
@@ -27,21 +28,21 @@ def main():
     y = df["Status Gizi"]
 
     # =========================
-    # TRAIN TEST SPLIT
+    # Train-test split
     # =========================
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
     # =========================
-    # SCALING
+    # Scaling
     # =========================
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
     # =========================
-    # GRID SEARCH RANDOM FOREST
+    # GridSearch RandomForest
     # =========================
     rf_param_grid = {
         "n_estimators": [50, 100],
@@ -60,7 +61,7 @@ def main():
     )
 
     # =========================
-    # TRAIN & MLflow LOG
+    # Training & MLflow logging
     # =========================
     with mlflow.start_run(run_name="RandomForest_Stunting") as run:
         grid_search.fit(X_train_scaled, y_train)
@@ -68,14 +69,14 @@ def main():
 
         y_pred = best_rf_model.predict(X_test_scaled)
 
-        # Classification report & metrics
+        # Classification report
         report_dict = classification_report(y_test, y_pred, output_dict=True)
         f1_macro = report_dict["macro avg"]["f1-score"]
-        # Ambil f1 kelas pertama jika ada
+
         first_class_label = list(report_dict.keys())[0]
         f1_first_class = report_dict.get(first_class_label, {}).get("f1-score", 0)
 
-        # Confusion matrix dan specificity untuk kelas 0
+        # Confusion matrix & specificity
         cm = confusion_matrix(y_test, y_pred)
         tn = cm[0][0]
         fp = cm[0][1] if cm.shape[1] > 1 else 0
@@ -87,7 +88,7 @@ def main():
         mlflow.log_metric(f"f1_class_{first_class_label}", f1_first_class)
         mlflow.log_metric("specificity_class_0", specificity)
 
-        # Log model dengan signature
+        # Log model with signature
         input_example = pd.DataFrame(X_train_scaled[:1], columns=X.columns)
         signature = infer_signature(X_train_scaled, best_rf_model.predict(X_train_scaled))
 
@@ -103,4 +104,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
