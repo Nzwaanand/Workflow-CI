@@ -63,8 +63,9 @@ jobs:
         docker tag prediksi_stunting "$IMAGE_NAME"
         docker push "$IMAGE_NAME"
 
-    - name: Upload MLflow Artifacts
+    - name: Upload Artifacts to GitHub
       uses: actions/upload-artifact@v4
+      if: always()
       with:
-        name: mlruns
-        path: MLProject/mlruns/847565626422463679/models/m-077b1b02c63f4702a10aefc729ef1d55/artifacts
+            name: model-artifact-mlruns
+            path: MLProject/mlruns/    
