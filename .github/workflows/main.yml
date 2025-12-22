@@ -1,57 +1,34 @@
-name: MLflow CI - Prediksi Balita Stunting
+import mlflow
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
-on:
-  push:
-    paths:
-      - 'MLProject/**'
-  workflow_dispatch:
+def run_model():
+    print("Memulai training model...")
 
-jobs:
-  train-log-and-dockerize:
-    runs-on: ubuntu-latest
+    # Load dataset
+    dataset_path = "MLProject/stunting_balita_preprocessing.csv"
+    print(f"Mencari dataset di: {dataset_path}")
+    data = pd.read_csv(dataset_path)
+    print("Dataset berhasil diload")
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+    X = data.drop("target", axis=1)
+    y = data["target"]
 
-    - name: Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.10'
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install mlflow pandas scikit-learn matplotlib seaborn dagshub
+    # Mulai MLflow run baru
+    with mlflow.start_run():  # <--- pastikan TIDAK ada run_id
+        model = RandomForestClassifier(n_estimators=100, random_state=42)
+        model.fit(X_train, y_train)
 
-    - name: Run MLflow Project (Local Environment)
-      run: |
-        mlflow run MLProject --env-manager=local
+        preds = model.predict(X_test)
+        acc = accuracy_score(y_test, preds)
+        print(f"Accuracy: {acc}")
 
-    - name: Commit and push MLflow run artifacts
-      run: |
-        git config user.name 'github-actions'
-        git config user.email 'github-actions@github.com'
-        git add MLProject/mlruns/*
-        git commit -m 'Update model artifact from MLflow tracking' || echo "No changes to commit"
-        git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        mlflow.log_metric("accuracy", acc)
+        mlflow.sklearn.log_model(model, "random_forest_model")
 
-    - name: Get latest MLflow model artifact path
-      id: get_model_path
-      run: |
-        MODEL_PATH=$(find MLProject/mlruns -type d -path "*/artifacts/model" | sort -r | head -n 1)
-        echo "Latest model path: $MODEL_PATH"
-        echo "MODEL_PATH=$MODEL_PATH" >> $GITHUB_ENV
-
-    - name: Log in to Docker Hub
-      run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
-
-    - name: Build Docker image from latest model artifact
-      run: mlflow models build-docker -m $MODEL_PATH -n stunting-model
-
-    - name: Push Docker image to Docker Hub
-      run: |
-        docker tag stunting-model:latest ${{ secrets.DOCKER_HUB_USERNAME }}/stunting-model:latest
-        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/stunting-model:latest
+if __name__ == "__main__":
+    run_model()
