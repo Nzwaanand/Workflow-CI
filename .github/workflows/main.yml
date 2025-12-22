@@ -60,7 +60,7 @@ jobs:
         IMAGE_NAME="${DOCKER_USER_CLEAN}/Prediksi-Stunting:latest"
     
         echo "Tagging image as $IMAGE_NAME"
-        docker tag Prediksi-Stunting "$IMAGE_NAME"
+        docker tag prediksi-stunting "$IMAGE_NAME"
         docker push "$IMAGE_NAME"
 
     - name: Upload MLflow Artifacts
