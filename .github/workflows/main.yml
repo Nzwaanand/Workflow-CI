@@ -67,4 +67,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: mlruns
-        path: MLProject/mlruns
+        path: MLProject/mlruns/847565626422463679/models/m-077b1b02c63f4702a10aefc729ef1d55/artifacts
