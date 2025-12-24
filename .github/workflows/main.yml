@@ -1,8 +1,8 @@
-name: MLflow CI - Prediksi Balita Stunting
+name: MLflow CI - Prediksi Balita Stunting (ADVANCED)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -10,62 +10,87 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    # =========================
+    # BASIC
+    # =========================
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
-    - name: Set up Python
+    - name: Set up Python 3.10
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
 
-    - name: Install dependencies
+    - name: Check Environment
+      run: |
+        python --version
+        pip --version
+
+    - name: Install Dependencies
       run: |
         pip install --upgrade pip
-        pip install mlflow pandas scikit-learn
+        pip install mlflow pandas scikit-learn joblib
 
+    # =========================
+    # SKILLED
+    # =========================
     - name: Create mlruns folder
       run: mkdir -p MLProject/mlruns
 
-    - name: Run Training Script
+    - name: Run MLflow Project (Training)
       working-directory: MLProject
-      run: python modelling.py
+      env:
+        MLFLOW_TRACKING_URI: file:./mlruns
+      run: |
+        python modelling.py
 
-    - name: Login Docker Hub
+    - name: Get Latest MLflow Run ID
+      working-directory: MLProject
+      run: |
+        RUN_ID=$(ls mlruns/*/* -d | head -n 1 | awk -F'/' '{print $(NF)}')
+        echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+        echo "Latest Run ID: $RUN_ID"
+
+    - name: Upload MLflow Artifacts to GitHub
+      uses: actions/upload-artifact@v4
+      with:
+        name: mlflow-artifacts
+        path: MLProject/mlruns/
+
+    # =========================
+    # ADVANCED
+    # =========================
+    - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-    - name: Build Docker Image with MLflow
+    - name: Build Docker Model with MLflow
       working-directory: MLProject
       env:
         MLFLOW_TRACKING_URI: file:./mlruns
       run: |
-        echo "Isi mlruns:"
-        find mlruns -maxdepth 4
-    
+        echo "Mencari model artifacts..."
         MODEL_PATH=$(find mlruns -type d -path "*/artifacts/model" | head -n 1)
-    
+
         echo "Model path ditemukan:"
         echo "$MODEL_PATH"
-    
+
         mlflow models build-docker \
           --model-uri "$MODEL_PATH" \
           --name prediksi_stunting
 
-    - name: Tag & Push Docker Image
+    - name: Tag Docker Image
       env:
         DOCKER_USER: ${{ secrets.DOCKER_HUB_USERNAME }}
       run: |
-        DOCKER_USER_CLEAN=$(printf "%s" "$DOCKER_USER")
-        IMAGE_NAME="${DOCKER_USER_CLEAN}/prediksi_stunting:latest"
-    
-        echo "Tagging image as $IMAGE_NAME"
-        docker tag prediksi_stunting "$IMAGE_NAME"
-        docker push "$IMAGE_NAME"
+        IMAGE_NAME=${DOCKER_USER}/prediksi_stunting:latest
+        docker tag prediksi_stunting $IMAGE_NAME
 
-    - name: Upload Artifacts to GitHub
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-            name: model-artifact-mlruns
-            path: MLProject/mlruns/    
+    - name: Push Docker Image
+      env:
+        DOCKER_USER: ${{ secrets.DOCKER_HUB_USERNAME }}
+      run: |
+        IMAGE_NAME=${DOCKER_USER}/prediksi_stunting:latest
+        docker push $IMAGE_NAME
